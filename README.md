@@ -1,2 +1,2 @@
 # duckyos
-# duckyos
+A toy OS
