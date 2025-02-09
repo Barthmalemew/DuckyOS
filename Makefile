@@ -1,24 +1,26 @@
-OBJECTS = kernel_main.o boot.oo
-CC = ../bin/i686-elf-gcc
-CFLAGS = -I../include -I./include -Wall -Wextra -O2 -ffreestanding -std=gnu99 -c
-LD = ../bin/i686-elf-gcc
-LDFLAGS = -lgcc -T ./linker.ld -ffreestanding -O2 -nostdlib
-AS = nasm
-ASFLAGS = -felf32
+include config.mk
 
-.phony: clean
+# Default target
+.PHONY: all
+all: kernel
 
-all: duckyos.bin
+# Include other makefiles
+include src/boot/Makefile
+include src/kernel/Makefile
 
-duckyos.bin: $(OBJECTS)
-	$(LD) $(LDFLAGS) $(OBJECTS) -o $@
-
-%.o: %.c
-	$(CC) $(CFLAGS) $< -o $@
-
-%.oo: %.asm
-	$(AS) $(ASFLAGS) $< -o $@
-
+# Clean build files
+.PHONY: clean
 clean:
-	rm -vrf *.o duckyos.bin *.oo
+	rm -rf $(BUILD_DIR)/*
 
+# Run the OS in QEMU
+.PHONY: run
+run: all
+	qemu-system-i386 -kernel $(BUILD_DIR)/kernel.bin
+
+# Debug with GDB
+.PHONY: debug
+debug: all
+	qemu-system-i386 -kernel $(BUILD_DIR)/kernel.bin -s -S &
+	gdb -ex "target remote localhost:1234" \
+	    -ex "symbol-file $(BUILD_DIR)/kernel.elf"
