@@ -1,7 +1,7 @@
 #ifndef IDT_H
 #define IDT_H
 
-#include <stdint.h>
+#include "stdint.h"
 
 struct idt_entry {
     uint16_t base_low;
@@ -16,7 +16,7 @@ struct idt_ptr {
     uint32_t base;
 } __attribute__((packed));
 
-void idt_init(void);
+extern void idt_init(void);
 void putchar(char c);
 extern void load_idt(uint32_t);
 extern void keyboard_handler_int(void);

@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include "../include/idt.h"
 
 // Video memory address
 volatile uint16_t* video_memory = (uint16_t*)0xB8000;

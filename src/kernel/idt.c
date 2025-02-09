@@ -17,6 +17,7 @@ void idt_init(void) {
     outb(0x21, 0x0);
     outb(0xA1, 0x0);
 
+    outb(0x21, ~(1 << 1));
     // Set up IDT pointer
     idtp.limit = (sizeof(struct idt_entry) * 256) - 1;
     idtp.base = (uint32_t)&idt;
@@ -46,7 +47,12 @@ void keyboard_handler(void) {
     uint8_t scancode = inb(0x60);
     outb(0x20, 0x20); // send EOI
 
+    // Write directly to video memory at a specific location
+    volatile uint16_t* debug_location = (uint16_t*)0xB8000;
+    // Write a character in white on black (0x07) at top of screen
+    debug_location[0] = (0x07 << 8) | 'X';
+    
     if (scancode < 0x80) {
-        putchar('K'); // print K for each keypress
+        putchar('K');
     }
 }
