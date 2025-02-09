@@ -58,8 +58,13 @@ void print(const char* str) {
 
 void kernel_main() {
     clear_screen();
+    print("Initialized IDT...\n");
+    idt_init();
     print("Kernel loaded successfully!\n");
     print("Welcome to our OS kernel\n");
+    print("IDT initialized. Keyboard ready!\n");
+    print("Press any key to see it working...\n");
+
     while(1) {
         // Halt CPU until next interrupt
         __asm__ volatile("hlt");
