@@ -1,3 +1,4 @@
+bits 32
 ; Multiboot header constants
 MBALIGN     equ  1<<0
 MEMINFO     equ  1<<1
@@ -21,6 +22,7 @@ section .text
 global _start
 extern kernel_main
 
+align 4
 _start:
     mov esp, stack_top
     

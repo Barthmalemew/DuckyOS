@@ -34,11 +34,12 @@ void keyboard_handler(void) {
             buffer_end = (buffer_end + 1) % KEYBOARD_BUFFER_SIZE;
             buffer_size++;
             
-            if (echo_enabled) {
-                vga_putchar(ascii);
-            }
+            // Remove automatic echo - let main loop handle it
         }
     }
+    
+    // Send End Of Interrupt to Programmable Interrupt Controller
+    outb(0x20, 0x20);
 }
 
 void keyboard_init(void) {

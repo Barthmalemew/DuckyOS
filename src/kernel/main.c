@@ -2,6 +2,7 @@
 #include <kernel/keyboard.h>
 #include <kernel/vga.h>
 #include <system/io.h>
+#include <system/isr.h>
 
 #define VGA_BUFFER 0xB8000
 #define VGA_WIDTH 80
@@ -68,7 +69,7 @@ void print(const char* str) {
 
 // Kernel entry point
 void kernel_main(void) {
-    // Initialize hardware
+    isr_init();
     idt_init();
     keyboard_init();
     
@@ -83,6 +84,12 @@ void kernel_main(void) {
 
     // Main loop
     while (1) {
-        __asm__ volatile("hlt");
+        if (keyboard_available()) {
+            char c = keyboard_getchar();
+            putchar(c);
+        } else {
+            // Wait for next interrupt
+            __asm__ volatile("hlt");
+        }
     }
 }

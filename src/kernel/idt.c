@@ -1,14 +1,7 @@
 #include <kernel/idt.h>
 #include <system/io.h>
 #include <system/type.h>
-
-#define KEYBOARD_BUFFER_SIZE 256
-
-// Circular keyboard buffer
-static char keyboard_buffer[KEYBOARD_BUFFER_SIZE];
-static volatile int buffer_start = 0;
-static volatile int buffer_end = 0;
-static volatile int buffer_size = 0;
+#include <kernel/keyboard.h>
 
 #define PIC1_COMMAND    0x20
 #define PIC1_DATA       0x21
@@ -43,39 +36,7 @@ static void idt_set_gate(uint8_t num, uint32_t base, uint16_t sel, uint8_t flags
     idt[num].flags = flags;
 }
 
-// Scancode to ASCII conversion table (US layout)
-static const char scancode_to_ascii[] = {
-    0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',
-    '\t', 'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',
-    0, 'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`',
-    0, '\\', 'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/', 0,
-    '*', 0, ' '
-};
-
 // rest of the code...
-
-void keyboard_handler(void) {
-    uint8_t scancode = inb(0x60);
-    
-    // Only handle key press events (ignore key release)
-    if (scancode < 0x80 && scancode < sizeof(scancode_to_ascii)) {
-        char ascii = scancode_to_ascii[scancode];
-        if (ascii != 0) {
-            // Add to circular buffer if there's space
-            if (buffer_size < KEYBOARD_BUFFER_SIZE) {
-                keyboard_buffer[buffer_end] = ascii;
-                buffer_end = (buffer_end + 1) % KEYBOARD_BUFFER_SIZE;
-                buffer_size++;
-                
-                // Echo character to screen
-                putchar(ascii);
-            }
-        }
-    }
-
-    // Send End Of Interrupt to Programmable Interrupt Controller
-    outb(PIC1_COMMAND, PIC_EOI);
-}
 
 // Initialize the IDT
 void idt_init(void) {
