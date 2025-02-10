@@ -8,12 +8,14 @@ LD = $(CROSS_COMPILE)ld
 KERNEL_DIR = src/kernel
 DRIVER_DIR = src/drivers
 BOOT_DIR = src/boot
+SYSTEM_DIR = src/kernel
 
 # Source files
 BOOT_SRC = $(BOOT_DIR)/boot.asm
 KERNEL_SRC = $(wildcard $(KERNEL_DIR)/*.c)
 DRIVER_SRC = $(wildcard $(DRIVER_DIR)/*.c)
 ASM_SRC = $(wildcard $(KERNEL_DIR)/*.asm)
+SYSTEM_SRC = $(KERNEL_DIR)/string.c
 
 # Object files
 BOOT_OBJ = $(BOOT_SRC:.asm=.o)

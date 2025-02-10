@@ -16,6 +16,9 @@ void isr_init(void);
 void isr_enable(void);
 void isr_disable(void);
 
+// Check if interrupts are enabled
+boolean interrupts_enabled(void);
+
 // Common interrupt numbers
 #define IRQ_KEYBOARD 1
 #define IRQ_CASCADE 2
