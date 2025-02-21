@@ -1,60 +1,58 @@
-# Compiler settings
-CROSS_COMPILE ?= i686-elf-
-CC = $(HOME)/dev/tools/cross/bin/$(CROSS_COMPILE)gcc
-ASM = nasm
-LD = $(CROSS_COMPILE)ld
+ASM=nasm
+CC=gcc
 
-# Directories
-KERNEL_DIR = src/kernel
-DRIVER_DIR = src/drivers
-BOOT_DIR = src/boot
-SYSTEM_DIR = src/kernel
+SRC_DIR=src
+TOOLS_DIR=tools
+BUILD_DIR=build
 
-# Source files
-BOOT_SRC = $(BOOT_DIR)/boot.asm
-KERNEL_SRC = $(wildcard $(KERNEL_DIR)/*.c)
-DRIVER_SRC = $(wildcard $(DRIVER_DIR)/*.c)
-ASM_SRC = $(wildcard $(KERNEL_DIR)/*.asm)
-SYSTEM_SRC = $(KERNEL_DIR)/string.c
+.PHONY: all floppy_image kernel bootloader clean always tools_fat
 
-# Object files
-BOOT_OBJ = $(BOOT_SRC:.asm=.o)
-KERNEL_OBJ = $(KERNEL_SRC:.c=.o)
-DRIVER_OBJ = $(DRIVER_SRC:.c=.o)
-ASM_OBJ = $(ASM_SRC:.asm=.o)
+all: floppy_image tools_fat
 
-# All objects in correct order
-OBJECTS = $(BOOT_OBJ) $(KERNEL_OBJ) $(ASM_OBJ) $(DRIVER_OBJ)
+#
+# Floppy image
+#
+floppy_image: $(BUILD_DIR)/main_floppy.img
 
-# Output files
-Kernel = duckyos.bin
-ISO = duckyos.iso
+$(BUILD_DIR)/main_floppy.img: bootloader kernel
+	dd if=/dev/zero of=$(BUILD_DIR)/main_floppy.img bs=512 count=2880
+	mkfs.fat -F 12 -n "NBOS" $(BUILD_DIR)/main_floppy.img
+	dd if=$(BUILD_DIR)/bootloader.bin of=$(BUILD_DIR)/main_floppy.img conv=notrunc
+	mcopy -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/kernel.bin "::kernel.bin"
+	mcopy -i $(BUILD_DIR)/main_floppy.img test.txt "::test.txt"
 
-# Flags
-CFLAGS = -ffreestanding -O2 -Wall -Wextra -I./src/include
-LDFLAGS = -T linker.ld -ffreestanding -O2 -nostdlib -lgcc
+#
+# Bootloader
+#
+bootloader: $(BUILD_DIR)/bootloader.bin
 
-.PHONY: all clean run iso
+$(BUILD_DIR)/bootloader.bin: always
+	$(ASM) $(SRC_DIR)/bootloader/boot.asm -f bin -o $(BUILD_DIR)/bootloader.bin
 
-all: $(Kernel)
+#
+# Kernel
+#
+kernel: $(BUILD_DIR)/kernel.bin
 
-$(Kernel): $(OBJECTS)
-	$(CC) $(LDFLAGS) -o $@ $(OBJECTS)
+$(BUILD_DIR)/kernel.bin: always
+	$(ASM) $(SRC_DIR)/kernel/main.asm -f bin -o $(BUILD_DIR)/kernel.bin
 
-%.o: %.c $(Headers)
-	$(CC) $(CFLAGS) -c $< -o $@
+#
+# Tools
+#
+tools_fat: $(BUILD_DIR)/tools/fat
+$(BUILD_DIR)/tools/fat: always $(TOOLS_DIR)/fat/fat.c
+	mkdir -p $(BUILD_DIR)/tools
+	$(CC) -g -o $(BUILD_DIR)/tools/fat $(TOOLS_DIR)/fat/fat.c
 
-%.o: %.asm
-	nasm -f elf32 $< -o $@
+#
+# Always
+#
+always:
+	mkdir -p $(BUILD_DIR)
 
+#
+# Clean
+#
 clean:
-	rm -f $(Kernel) $(ISO) $(OBJECTS)
-
-run: $(Kernel)
-	qemu-system-i386 -kernel $(Kernel)
-
-iso: $(Kernel)
-	mkdir -p isodir/boot/grub
-	cp $(Kernel) isodir/boot/
-	cp grub.cfg isodir/boot/grub/
-	grub-mkrescue -o $(ISO) isodir
+	rm -rf $(BUILD_DIR)/*
