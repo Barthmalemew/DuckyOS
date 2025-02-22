@@ -33,7 +33,7 @@ puts:
     push ax
     push bx
 
-.puts_loop:
+.loop:
     lodsb               ; AL = [DS:SI], SI++
     or al, al           ; Check if AL == 0 (null terminator)
     jz .done
@@ -42,7 +42,7 @@ puts:
     mov bh, 0           ; Display page = 0
     int 0x10            ; Print character in AL
 
-    jmp .puts_loop
+    jmp .loop
 
 .done:
     pop bx
@@ -53,7 +53,7 @@ puts:
 ; -----------------------------------------------------------------------------
 ; Our message (null-terminated). We add a DOS/BIOS newline (CR, LF) before the 0.
 ; -----------------------------------------------------------------------------
-msg_hello: db 'Welcome to the pond my fellow duck', ENDL, 0
+msg_hello: db 'hello from the kernel fellow duck', ENDL, 0
 
 ; No more code. When the CPU reaches .halt, it stops forever.
 ; =============================================================================

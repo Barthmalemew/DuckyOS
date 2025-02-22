@@ -44,8 +44,8 @@ bdb_large_sector_count:     dd 0                    ; Large sector count = 0 (un
 ; --- Extended Boot Record (EBPB) ---
 ebr_drive_number:           db 0                    ; 0x00 for floppy; 0x80 for HDD
                             db 0                    ; Reserved
-ebr_signature:              db 0x29                 ; Indicates an extended BPB
-ebr_volume_id:              db 0x12, 0x34, 0x56, 0x78 ; Volume serial number
+ebr_signature:              db 29h                  ; Indicates an extended BPB
+ebr_volume_id:              db 12h, 34h, 56h, 78h   ; Volume serial number
 ebr_volume_label:           db 'DuckyOS    '        ; 11-byte volume label (pad with spaces)
 ebr_system_id:              db 'FAT12   '           ; 8-byte system ID string
 
@@ -60,16 +60,18 @@ start:
     mov ax, 0            ; We'll use segment 0 for DS and ES for now
     mov ds, ax
     mov es, ax
+    
+
     mov ss, ax           ; Set stack segment
     mov sp, 0x7C00       ; Place stack at 0x7C00 (downwards)
 
     ; Some BIOSes set the boot segment to 07C0:0000 instead of 0000:7C00.
     ; Force CS:IP = 0000:7C00 so our offsets match.
     push es              ; ES = 0 from above
-    push word .after_reloc
+    push word .after
     retf
 
-.after_reloc:
+.after:
 
     ; -------------------------------------------------------------------------
     ; 2) Save drive number (DL) and display a "Loading..." message.
@@ -83,8 +85,8 @@ start:
     ;    - We only do this to get heads/sectors dynamically if needed.
     ; -------------------------------------------------------------------------
     push es
-    mov ah, 0x08               ; Get drive parameters
-    int 0x13
+    mov ah, 08h               ; Get drive parameters
+    int 13h
     jc floppy_error            ; Jump if CF is set (error)
     pop es
 
@@ -134,7 +136,7 @@ start:
     mov di, buffer
 
 .search_kernel:
-    mov si, file_kernel_bin
+    mov si, file_stage2_bin
     mov cx, 11              ; Compare up to 11 chars (DOS 8.3 filename)
     push di
     repe cmpsb              ; Compare string in [DI..] with [SI..]
@@ -153,7 +155,7 @@ start:
     ; DI points to the start of directory entry
     ; Offset 26 in a directory entry is the first cluster (WORD).
     mov ax, [di + 26]
-    mov [kernel_cluster], ax
+    mov [stage2_cluster], ax
 
     ; -------------------------------------------------------------------------
     ; 8) Load the entire FAT into 'buffer' so we can parse the cluster chain.
@@ -173,7 +175,7 @@ start:
     mov bx, KERNEL_LOAD_OFFSET
 
 .load_kernel_loop:
-    mov ax, [kernel_cluster]
+    mov ax, [stage2_cluster]
 
     ; Hardcode LBA offset for cluster N:
     ;   LBA =  (N-2)*sectors_per_cluster + (reserved + fats + rootdir)
@@ -192,7 +194,7 @@ start:
     ; 10) Use the FAT (already in 'buffer') to find the next cluster.
     ;     FAT12 has 12-bit entries, so each cluster can be at an even/odd nibble.
     ; -------------------------------------------------------------------------
-    mov ax, [kernel_cluster]
+    mov ax, [stage2_cluster]
     mov cx, 3
     mul cx            ; AX = cluster * 3
     mov cx, 2
@@ -215,7 +217,7 @@ start:
     cmp ax, 0x0FF8    ; 0xFF8..0xFFF => end of chain
     jae .read_finish
 
-    mov [kernel_cluster], ax
+    mov [stage2_cluster], ax
     jmp .load_kernel_loop
 
 .read_finish:
@@ -246,7 +248,7 @@ floppy_error:
     jmp wait_key_and_reboot
 
 kernel_not_found_error:
-    mov si, msg_kernel_not_found
+    mov si, msg_stage2_not_found
     call puts
     jmp wait_key_and_reboot
 
@@ -255,6 +257,10 @@ wait_key_and_reboot:
     mov ah, 0
     int 16h             ; Wait for keystroke
     jmp 0FFFFh:0        ; Jump to BIOS, causing reboot
+
+.halt:
+    cli
+    hlt
 
 ; =============================================================================
 ; Display String Routine (BIOS Teletype)
@@ -265,7 +271,7 @@ puts:
     push ax
     push bx
 
-.puts_loop:
+.loop:
     lodsb               ; Load next char into AL from DS:SI
     or al, al
     jz .puts_done       ; If AL=0, end of string
@@ -276,7 +282,7 @@ puts:
 
     jmp .puts_loop
 
-.puts_done:
+.done:
     pop bx
     pop ax
     pop si
@@ -331,13 +337,13 @@ disk_read:
     call lba_to_chs       ; Convert LBA -> CHS
     pop ax                ; AX now has # of sectors to read in AL
 
-    mov ah, 0x02          ; BIOS: Read sectors (INT 13h)
+    mov ah, 02h          ; BIOS: Read sectors (INT 13h)
     mov di, 3             ; Retry count
 
 .retry:
     pusha
     stc                   ; Some BIOSes need CF set
-    int 0x13
+    int 13h
     jnc .done             ; If no carry, read succeeded
 
     popa
@@ -366,7 +372,7 @@ disk_reset:
     pusha
     mov ah, 0
     stc
-    int 0x13
+    int 13h
     jc floppy_error
     popa
     ret
@@ -377,11 +383,11 @@ disk_reset:
 
 msg_loading:            db 'Loading...', ENDL, 0
 msg_read_failed:        db 'Read from disk failed!', ENDL, 0
-msg_kernel_not_found:   db 'KERNEL.BIN file not found!', ENDL, 0
+msg_kernel_not_found:   db 'STAGE2.BIN file not found!', ENDL, 0
 
 ; DOS 8.3 filename (11 bytes: 8 for name + 3 for extension)
 ; "KERNEL  BIN" has two spaces to align the extension in an 8.3 name.
-file_kernel_bin:        db 'KERNEL  BIN'
+file_kernel_bin:        db 'STAGE2  BIN'
 
 ; Will store the first cluster of KERNEL.BIN
 kernel_cluster:         dw 0
