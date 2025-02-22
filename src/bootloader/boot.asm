@@ -393,7 +393,9 @@ KERNEL_LOAD_OFFSET      equ 0
 ; Reserve space at the end of the 512-byte sector
 ; up to byte 510, then put the 0xAA55 signature (2 bytes).
 times 510-($-$$) db 0
-dw 0xAA55
+dw 0AA55h
+
+buffer:
 ; =============================================================================
 ; END OF BOOT SECTOR (512 BYTES)
 ; =============================================================================
