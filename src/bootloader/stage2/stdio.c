@@ -1,5 +1,4 @@
 /******************************************************************************
- *  FILE: printf_heavily_documented.c
  *  DESCRIPTION:
  *      A heavily documented single-file example of a simplified printf-like
  *      implementation for x86 environments. It uses a custom low-level

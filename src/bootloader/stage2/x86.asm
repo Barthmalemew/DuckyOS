@@ -1,5 +1,4 @@
 ; *****************************************************************************
-; FILE: x86_lowlevel.asm
 ; DESCRIPTION:
 ;   Contains two low-level routines for 16-bit x86 environments (small model):
 ;     1) _x86_div64_32 - 64-bit / 32-bit division.
